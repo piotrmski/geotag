@@ -5,4 +5,7 @@ Vue.config.productionTip = false;
 
 new Vue({
   render: h => h(App),
+  dev: {
+    port: 8081
+  }
 }).$mount('#app');

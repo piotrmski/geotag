@@ -6,5 +6,5 @@ const BrowserWindow = electron.BrowserWindow;
 app.on('ready', () => {
   Menu.setApplicationMenu(null);
   let window = new BrowserWindow({width: 800, height: 600});
-  window.loadURL(`${__dirname}/dist/index.html`);
+  window.loadFile('dist/index.html');
 });
