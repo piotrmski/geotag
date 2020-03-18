@@ -1,24 +1,24 @@
 <template>
-<body>
   <div id="map">
-    <l-map :zoom="zoom" :center="center">
+    <l-map :zoom="zoom" :center="center" :options="{zoomControl: false}">
       <l-tile-layer :url="url" :attribution="attribution"></l-tile-layer>
+      <l-control-zoom position="bottomright"></l-control-zoom>
       <l-marker :lat-lng="marker"></l-marker>
     </l-map>
   </div>
-</body>
 </template>
 
 <script>
 import L from "leaflet";
-import { LMap, LTileLayer, LMarker } from "vue2-leaflet";
+import { LMap, LTileLayer, LMarker, LControlZoom } from "vue2-leaflet";
 
 export default {
   name: "Map",
   components: {
     LMap,
     LTileLayer,
-    LMarker
+    LMarker,
+    LControlZoom
   },
   data() {
     return {
@@ -34,7 +34,7 @@ export default {
 </script>
 
 <style scoped>
-#map {
-  height: 30vh;
-}
+  #map {
+    height: 100vh;
+  }
 </style>
