@@ -1,6 +1,7 @@
 <template>
   <div id="sidebar">
     <div id="open-button">
+      <svg class="icon"><use href="@/assets/icons.svg#load"></use></svg>
       Upuść tu zdjęcia, aby je edytować, albo kliknij, aby wybrać z dysku.
     </div>
   </div>
@@ -54,13 +55,22 @@
     border: 1px dashed #707070;
     color: #505050;
     border-radius: 5px;
-    padding: 10px 15px;
+    padding: 10px 15px 10px 53px;
     transition: 0.1s background-color;
+    position: relative;
   }
   #open-button:hover {
     background: rgba(0, 0, 0, 0.025);
+    border: 1px solid #a0a0a0;
   }
   #open-button:active {
     background: rgba(0, 0, 0, 0.05);
+  }
+  #open-button .icon {
+    width: 25px;
+    height: 20px;
+    position: absolute;
+    top: calc(50% - 10px);
+    left: 15px;
   }
 </style>
