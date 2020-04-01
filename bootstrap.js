@@ -1,10 +1,18 @@
-const electron = require('electron');
-const app = electron.app;
-const BrowserWindow = electron.BrowserWindow;
+const {ipcMain, app, BrowserWindow, dialog} = require('electron');
 
 module.exports = function(dev) {
+  let window;
+
   app.on('ready', () => {
-    let window = new BrowserWindow({width: 800, height: 600});
+    window = new BrowserWindow({
+      width: 800,
+      height: 600,
+      minWidth: 350,
+      minHeight: 500,
+      webPreferences: {
+        nodeIntegration: true
+      }
+    });
     if (dev) {
       window.loadURL('http://localhost:8081/');
       window.webContents.openDevTools();
@@ -13,4 +21,15 @@ module.exports = function(dev) {
       window.loadFile('dist/index.html');
     }
   });
+
+
+  ipcMain.on('open-file', (event) => {
+    dialog.showOpenDialogSync(window, {
+      filters: [
+        {name: 'Zdjęcia', extensions: ['jpg', 'jpeg', 'tif', 'tiff']},
+        {name: 'Wszystkie pliki', extensions: ['*']}
+      ]
+    });
+    event.returnValue = 'TODO implement';
+  })
 };
