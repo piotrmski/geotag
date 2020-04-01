@@ -32,6 +32,7 @@
   "build": {
     "files": [
       "index.js",
+      "bootstrap.js",
       "dist"
     ],
     "directories": {
