@@ -85,10 +85,13 @@ export default {
     holder.ondrop = (e) => {
       e.preventDefault();
 
+      const paths = [];
       for (let f of e.dataTransfer.files) {
-        console.log('File(s) you dragged here: ', f.path)
+         paths.push(f.path);
       }
 
+      const images = ipcRenderer.sendSync('open-files', paths);
+      images.forEach(image => { this.images.push(image); });
       return false;
     };
   },
@@ -165,7 +168,8 @@ export default {
       }
     },
     handleOpenFileClick: function() {
-      ipcRenderer.sendSync('open-file');
+      const images = ipcRenderer.sendSync('open-dialog');
+      images.forEach(image => { this.images.push(image); });
     }
   }
 }
