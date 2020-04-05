@@ -1,6 +1,7 @@
 const {ipcMain, app, BrowserWindow, dialog} = require('electron');
 const fs = require('fs');
 const exif = require('piexifjs');
+const pathManager = require('path');
 
 module.exports = function(dev) {
   let window;
@@ -98,7 +99,7 @@ module.exports = function(dev) {
 
   function getFileNameFromPath(path) {
     // C:\folder\folder\file.ext -> file.ext
-    let startIndex = path.lastIndexOf('\\');
+    let startIndex = path.lastIndexOf(pathManager.sep);
     return path.substring(startIndex + 1);
   }
 
