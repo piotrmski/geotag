@@ -27,28 +27,35 @@ module.exports = function(dev) {
 
   ipcMain.on('set-gps-exif', (event, args) => {
     // args -> [lat, long, image obj]
-    let lat = args[0];
-    let latHemisphere = 'N';
-    if (lat < 0.0) {
-      lat *= -1.0;
-      latHemisphere = 'S';
-    }
-    let long = args[1];
-    let longHemisphere = 'E';
-    if (long < 0.0) {
-      long *= -1.0;
-      longHemisphere = 'W';
-    }
+    // lat & long = null -> clear exif gps data
     const gps = {};
-    gps[exif.GPSIFD.GPSLatitudeRef] = latHemisphere;
-    gps[exif.GPSIFD.GPSLongitudeRef] = longHemisphere;
-    gps[exif.GPSIFD.GPSLatitude] = exif.GPSHelper.degToDmsRational(lat);
-    gps[exif.GPSIFD.GPSLongitude] = exif.GPSHelper.degToDmsRational(long);
+    let lat = args[0];
+    let long = args[1];
+    if (lat !== null && lat !== undefined && long !== null && long !== undefined) {
+      let latHemisphere = 'N';
+      let longHemisphere = 'E';
+
+      if (lat < 0.0) {
+        lat *= -1.0;
+        latHemisphere = 'S';
+      }
+
+      if (long < 0.0) {
+        long *= -1.0;
+        longHemisphere = 'W';
+      }
+
+      gps[exif.GPSIFD.GPSLatitudeRef] = latHemisphere;
+      gps[exif.GPSIFD.GPSLongitudeRef] = longHemisphere;
+      gps[exif.GPSIFD.GPSLatitude] = exif.GPSHelper.degToDmsRational(lat);
+      gps[exif.GPSIFD.GPSLongitude] = exif.GPSHelper.degToDmsRational(long);
+    }
     const exifObj = {'GPS': gps};
     const exifStr = exif.dump(exifObj);
     const image = args[2];
     const newImageBase64 = exif.insert(exifStr, image.data);
     fs.writeFileSync(image.path, removeBase64Prefix(newImageBase64), 'base64');
+    event.returnValue = true; // have to return something
   });
 
   ipcMain.on('open-files', (event, args) => {
@@ -110,6 +117,7 @@ module.exports = function(dev) {
   }
 
   function isFileTypeCorrect(type) {
+    type = type.toLowerCase();
     return type === 'jpeg' || type === 'jpg' || type === 'tiff' || type === 'tif';
   }
 
@@ -118,6 +126,7 @@ module.exports = function(dev) {
   }
 
   function getBase64PrefixFromType(type) {
+    type = type.toLowerCase();
     let prefix = 'data:image/';
     if (type === 'tiff' || type === 'tif') {
       prefix += 'tiff';
