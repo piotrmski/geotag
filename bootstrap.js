@@ -117,6 +117,7 @@ module.exports = function(dev) {
   }
 
   function isFileTypeCorrect(type) {
+    type = type.toLowerCase();
     return type === 'jpeg' || type === 'jpg' || type === 'tiff' || type === 'tif';
   }
 
@@ -125,6 +126,7 @@ module.exports = function(dev) {
   }
 
   function getBase64PrefixFromType(type) {
+    type = type.toLowerCase();
     let prefix = 'data:image/';
     if (type === 'tiff' || type === 'tif') {
       prefix += 'tiff';
