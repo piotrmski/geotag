@@ -25,6 +25,12 @@ module.exports = function(dev) {
     }
   });
 
+  ipcMain.on('get-argv-images', (event) => {
+    const executableName = getFileNameFromPath(process.argv[0]);
+    const isAppStandalone = executableName !== 'electron' && executableName !== 'electron.exe';
+    event.returnValue = processPaths(process.argv.slice(isAppStandalone ? 1 : 2));
+  });
+
   ipcMain.on('set-gps-exif', (event, args) => {
     // args: Image
     // args.latLng = null -> clear exif gps data

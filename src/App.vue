@@ -5,6 +5,7 @@
       :zoom="map.zoom"
       :center="map.center"
       :options="{zoomControl: false}"
+      :maxBounds="map.bounds"
       id="map"
       ref="map"
       @mousemove="handleMapMouseMove($event)"
@@ -103,6 +104,8 @@ export default {
       }
       this.openImages(images, latLng);
     };
+
+    this.openImages(ipcRenderer.sendSync('get-argv-images'));
   },
   data() {
     return {
@@ -120,7 +123,8 @@ export default {
         zoom: 2,
         center: L.latLng(10, 0),
         url: "https://{s}.tile.osm.org/{z}/{x}/{y}.png",
-        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+        bounds: L.latLngBounds(L.latLng(-85, -180), L.latLng(85, 180))
       },
       pinDefault: L.icon({
         iconUrl: require('@/assets/pin-default.svg'),
@@ -220,6 +224,9 @@ export default {
     },
 
     handlePinDrag: function(image, event) {
+      if (this.isLatLngOutOfBounds(event.target.getLatLng())) {
+        event.target.setLatLng(this.clampLatLngToBounds(event.target.getLatLng()))
+      }
       image.latLng = event.target.getLatLng();
     },
 
@@ -258,8 +265,19 @@ export default {
     handleMapMouseMove: function(event) {
       if (this.draggedImage) {
         this.pinTempStyle = {display: 'none'};
-        this.draggedImage.latLng = event.latlng;
+        this.draggedImage.latLng = this.clampLatLngToBounds(event.latlng);
       }
+    },
+
+    isLatLngOutOfBounds: function(latLng) {
+      return Math.abs(latLng.lat) > 85 || Math.abs(latLng.lng) > 180;
+    },
+
+    clampLatLngToBounds: function(latLng) {
+      return L.latLng(
+        latLng.lat < -85 ? -85 : (latLng.lat > 85 ? 85 : latLng.lat),
+        latLng.lng < -180 ? -180 : (latLng.lng > 180 ? 180 : latLng.lng)
+      )
     }
   }
 }
@@ -276,6 +294,9 @@ export default {
     font-size: 12px;
     line-height: 1.35;
     user-select: none;
+  }
+  img {
+    -webkit-user-drag: none;
   }
   .default-cursor * {
     cursor: default!important;
