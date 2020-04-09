@@ -28,7 +28,13 @@ module.exports = function(dev) {
   ipcMain.on('get-argv-images', (event) => {
     const executableName = getFileNameFromPath(process.argv[0]);
     const isAppStandalone = executableName !== 'electron' && executableName !== 'electron.exe';
-    event.returnValue = processPaths(process.argv.slice(isAppStandalone ? 1 : 2));
+    const paths = [];
+    for (const path of process.argv.slice(isAppStandalone ? 1 : 2)) {
+      if (!paths.includes(path)) {
+        paths.push(path);
+      }
+    }
+    event.returnValue = processPaths(paths);
   });
 
   ipcMain.on('set-gps-exif', (event, args) => {
