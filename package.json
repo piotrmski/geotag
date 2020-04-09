@@ -1,6 +1,8 @@
 {
   "name": "geotag",
   "version": "0.1.0",
+  "description": "Aplikacja umożliwiająca modyfikację i przegląd danych EXIF w plikach JPEG",
+  "author": "Piotr Marczyński && Paweł Szwajnoch && Przemysław Wylężek <test@test.com>",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -8,10 +10,12 @@
     "lint": "vue-cli-service lint",
     "electron-dev": "electron index-dev.js",
     "run-dev": "npm-run-all --parallel serve electron-dev",
-    "run-prod": "electron index.js"
+    "run-prod": "electron index.js",
+    "build-installer": "npm run build && copyfiles -f ./src/assets/builder-icons/*.* ./dist && electron-builder"
   },
   "main": "index.js",
   "dependencies": {
+    "copyfiles": "^2.2.0",
     "core-js": "^3.6.4",
     "leaflet": "^1.6.0",
     "piexifjs": "^1.0.4",
@@ -31,6 +35,25 @@
     "vue-template-compiler": "^2.6.11"
   },
   "build": {
+    "appId": "geotag",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "target": "NSIS",
+      "icon": "dist/icon.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "JPEG",
+          "JPG"
+        ]
+      }
+    ],
     "files": [
       "index.js",
       "bootstrap.js",
