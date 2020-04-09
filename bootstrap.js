@@ -26,12 +26,13 @@ module.exports = function(dev) {
   });
 
   ipcMain.on('set-gps-exif', (event, args) => {
-    // args -> [lat, long, image obj]
-    // lat & long = null -> clear exif gps data
+    // args: Image
+    // args.latLng = null -> clear exif gps data
     const gps = {};
-    let lat = args[0];
-    let long = args[1];
-    if (lat !== null && lat !== undefined && long !== null && long !== undefined) {
+    if (args.latLng != null) {
+      let lat = args.latLng.lat;
+      let long = args.latLng.lng;
+
       let latHemisphere = 'N';
       let longHemisphere = 'E';
 
@@ -52,15 +53,27 @@ module.exports = function(dev) {
     }
     const exifObj = {'GPS': gps};
     const exifStr = exif.dump(exifObj);
-    const image = args[2];
-    const newImageBase64 = exif.insert(exifStr, image.data);
-    fs.writeFileSync(image.path, removeBase64Prefix(newImageBase64), 'base64');
-    event.returnValue = true; // have to return something
+    const newImageBase64 = exif.insert(exifStr, args.data);
+    fs.writeFileSync(args.path, removeBase64Prefix(newImageBase64), 'base64');
   });
 
   ipcMain.on('open-files', (event, args) => {
-    // args -> [ [path] [path] ... ]
+    // args: string[] - [path1, path2, ...]
     event.returnValue = processPaths(args);
+  });
+
+  ipcMain.on('show-overwrite-warning', (event, args) => {
+    // args: string[] - [filename1, filename2, ...]
+    dialog.showMessageBox(window, {
+      type: 'warning',
+      title: 'Ostrzeżenie',
+      buttons: ['OK', 'Cancel'],
+      message: args.length === 1
+        ? `Plik "${args[0]}" posiada już zapisane położenie geograficzne.`
+        : `Pliki "${args.join('", "')}" posiadają już zapisane położenie geograficzne.`,
+      detail: 'Upuszczenie zdjęcia na mapie spowoduje nadpisanie położenia. Aby zobaczyć aktualne położenie zdjęcia i edytować je, upuść je w obszarze wyboru pliku.',
+      checkboxLabel: 'Nie pokazuj tego ostrzeżenia ponownie'
+    }).then(r => event.returnValue = r);
   });
 
 
@@ -83,7 +96,7 @@ module.exports = function(dev) {
         const file = fs.readFileSync(filePath);
         const fileName = getFileNameFromPath(filePath);
         const fileType = getFileTypeFromName(fileName);
-        if (isFileTypeCorrect(fileType)) {
+        try {
           const base64ImageData = getBase64PrefixFromType(fileType) + file.toString('base64');
           const latLong = getLatLongFromImage(base64ImageData);
           const image = {
@@ -93,7 +106,7 @@ module.exports = function(dev) {
             latLng: latLong
           };
           images.push(image);
-        } else {
+        } catch {
           wrongFilesNames.push(fileName);
         }
       });
@@ -114,11 +127,6 @@ module.exports = function(dev) {
     // file.ext -> ext
     let startIndex = name.lastIndexOf('.');
     return name.substring(startIndex + 1);
-  }
-
-  function isFileTypeCorrect(type) {
-    type = type.toLowerCase();
-    return type === 'jpeg' || type === 'jpg' || type === 'tiff' || type === 'tif';
   }
 
   function removeBase64Prefix(data) {
@@ -151,12 +159,12 @@ module.exports = function(dev) {
   }
 
   function showError(message) {
-    dialog.showMessageBox(window, {
+    dialog.showMessageBoxSync(window, {
       type: 'error',
       title: 'Błąd',
       buttons: ['OK'],
       message: message
-    }).then();
+    });
   }
 
   function getLatLongFromImage(base64ImageData) {
@@ -170,14 +178,14 @@ module.exports = function(dev) {
           longHemisphere && Array.isArray(longData) && longData.length === 3) {
         if (isGpsDataCorrect(latData) && isGpsDataCorrect(longData)) {
           let lat = exif.GPSHelper.dmsRationalToDeg(latData, 'N');
-          let long = exif.GPSHelper.dmsRationalToDeg(longData, 'E');
+          let lng = exif.GPSHelper.dmsRationalToDeg(longData, 'E');
           if (latHemisphere === 'S') {
             lat *= -1.0;
           }
           if (longHemisphere === 'W') {
-            long *= -1.0;
+            lng *= -1.0;
           }
-          return [lat, long];
+          return {lat, lng};
         } else {
           return null;
         }
