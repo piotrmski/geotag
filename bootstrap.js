@@ -54,7 +54,11 @@ module.exports = function(dev) {
     const exifObj = {'GPS': gps};
     const exifStr = exif.dump(exifObj);
     const newImageBase64 = exif.insert(exifStr, args.data);
-    fs.writeFileSync(args.path, removeBase64Prefix(newImageBase64), 'base64');
+    try {
+      fs.writeFileSync(args.path, removeBase64Prefix(newImageBase64), 'base64');
+    } catch {
+      showError(`Błąd zapisu pliku "${args.path}"`)
+    }
   });
 
   ipcMain.on('open-files', (event, args) => {
