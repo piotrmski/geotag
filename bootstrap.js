@@ -1,10 +1,12 @@
 const {ipcMain, app, BrowserWindow, dialog} = require('electron');
 const fs = require('fs');
-const exif = require('piexifjs');
 const pathManager = require('path');
+const Jimp = require('jimp');
+const ExifTool = require("exiftool-vendored").ExifTool;
 
 module.exports = function(dev) {
   let window;
+  const exiftool = new ExifTool();
 
   app.on('ready', () => {
     window = new BrowserWindow({
@@ -23,6 +25,8 @@ module.exports = function(dev) {
       window.setMenu(null);
       window.loadFile('dist/index.html');
     }
+
+    app.on('before-quit', () => exiftool.end())
   });
 
   ipcMain.on('get-argv-images', (event) => {
@@ -34,16 +38,21 @@ module.exports = function(dev) {
         paths.push(path);
       }
     }
-    event.returnValue = processPaths(paths);
+    processPaths(paths).then(result => event.returnValue = result);
   });
 
   ipcMain.on('set-gps-exif', (event, args) => {
     // args: Image
     // args.latLng = null -> clear exif gps data
-    const gps = {};
+
+    const tags = { GPSLatitude: null, GPSLongitude: null, GPSLatitudeRef: null, GPSLongitudeRef: null };
     if (args.latLng != null) {
       let lat = args.latLng.lat;
       let long = args.latLng.lng;
+
+      if (lat === 0 && long === 0) { // Geotag (0, 0) is considered invalid
+        lat = 0.001;
+      }
 
       let latHemisphere = 'N';
       let longHemisphere = 'E';
@@ -58,24 +67,17 @@ module.exports = function(dev) {
         longHemisphere = 'W';
       }
 
-      gps[exif.GPSIFD.GPSLatitudeRef] = latHemisphere;
-      gps[exif.GPSIFD.GPSLongitudeRef] = longHemisphere;
-      gps[exif.GPSIFD.GPSLatitude] = exif.GPSHelper.degToDmsRational(lat);
-      gps[exif.GPSIFD.GPSLongitude] = exif.GPSHelper.degToDmsRational(long);
+      tags.GPSLatitudeRef = latHemisphere;
+      tags.GPSLongitudeRef = longHemisphere;
+      tags.GPSLatitude = lat;
+      tags.GPSLongitude = long;
     }
-    const exifObj = {'GPS': gps};
-    const exifStr = exif.dump(exifObj);
-    const newImageBase64 = exif.insert(exifStr, args.data);
-    try {
-      fs.writeFileSync(args.path, removeBase64Prefix(newImageBase64), 'base64');
-    } catch {
-      showError(`Błąd zapisu pliku "${args.path}"`)
-    }
+    exiftool.write(args.path, tags, ['-overwrite_original']).catch(() => showError(`Błąd zapisu pliku "${args.path}"`));
   });
 
   ipcMain.on('open-files', (event, args) => {
     // args: string[] - [path1, path2, ...]
-    event.returnValue = processPaths(args);
+    processPaths(args).then(result => event.returnValue = result);
   });
 
   ipcMain.on('show-overwrite-warning', (event, args) => {
@@ -101,31 +103,42 @@ module.exports = function(dev) {
       ],
       properties: ['openFile', 'multiSelections']
     });
-    event.returnValue = processPaths(paths);
+    processPaths(paths).then(result => event.returnValue = result);
   });
 
-  function processPaths(paths) {
+  async function processPaths(paths) {
     const images = [];
     const wrongFilesNames = [];
     if (paths) {
-      paths.forEach(filePath => {
-        const file = fs.readFileSync(filePath);
+      for (const filePath of paths) {
         const fileName = getFileNameFromPath(filePath);
         const fileType = getFileTypeFromName(fileName);
-        try {
-          const base64ImageData = getBase64PrefixFromType(fileType) + file.toString('base64');
-          const latLong = getLatLongFromImage(base64ImageData);
-          const image = {
-            filename: fileName,
-            path: filePath,
-            data: base64ImageData,
-            latLng: latLong
-          };
-          images.push(image);
-        } catch {
+        if (['tif', 'tiff', 'jpg', 'jpeg'].includes(fileType)) {
+          let base64ImageData;
+          try {
+            if (fileType === 'tif' || fileType === 'tiff') { // tiff requires conversion to a format displayable by browser
+              const image = await Jimp.read(filePath);
+              const file = await image.getBufferAsync(Jimp.MIME_PNG);
+              base64ImageData = 'data:image/png;base64,' + file.toString('base64');
+            } else { // jpeg does not need conversion
+              const file = fs.readFileSync(filePath);
+              base64ImageData = 'data:image/jpeg;base64,' + file.toString('base64');
+            }
+            const latLong = await getLatLongFromImage(filePath);
+            const image = {
+              filename: fileName,
+              path: filePath,
+              data: base64ImageData,
+              latLng: latLong
+            };
+            images.push(image);
+          } catch {
+            wrongFilesNames.push(fileName);
+          }
+        } else {
           wrongFilesNames.push(fileName);
         }
-      });
+      }
     }
     if (wrongFilesNames.length > 0) {
       showError(getErrorMessageFromFilesNames(wrongFilesNames));
@@ -143,21 +156,6 @@ module.exports = function(dev) {
     // file.ext -> ext
     let startIndex = name.lastIndexOf('.');
     return name.substring(startIndex + 1);
-  }
-
-  function removeBase64Prefix(data) {
-    return data.split(',')[1];
-  }
-
-  function getBase64PrefixFromType(type) {
-    type = type.toLowerCase();
-    let prefix = 'data:image/';
-    if (type === 'tiff' || type === 'tif') {
-      prefix += 'tiff';
-    } else { // jpeg || jpg
-      prefix += 'jpeg';
-    }
-    return prefix + ';base64,';
   }
 
   function getErrorMessageFromFilesNames(names) {
@@ -183,44 +181,15 @@ module.exports = function(dev) {
     });
   }
 
-  function getLatLongFromImage(base64ImageData) {
-    const exifObj = exif.load(base64ImageData);
-    if (exifObj && exifObj.GPS) {
-      const latHemisphere = exifObj.GPS[exif.GPSIFD.GPSLatitudeRef];
-      const longHemisphere = exifObj.GPS[exif.GPSIFD.GPSLongitudeRef];
-      const latData = exifObj.GPS[exif.GPSIFD.GPSLatitude];
-      const longData = exifObj.GPS[exif.GPSIFD.GPSLongitude];
-      if (latHemisphere && Array.isArray(latData) && latData.length === 3 &&
-          longHemisphere && Array.isArray(longData) && longData.length === 3) {
-        if (isGpsDataCorrect(latData) && isGpsDataCorrect(longData)) {
-          let lat = exif.GPSHelper.dmsRationalToDeg(latData, 'N');
-          let lng = exif.GPSHelper.dmsRationalToDeg(longData, 'E');
-          if (latHemisphere === 'S') {
-            lat *= -1.0;
-          }
-          if (longHemisphere === 'W') {
-            lng *= -1.0;
-          }
-          return {lat, lng};
-        } else {
-          return null;
-        }
-      } else {
-        return null;
+  async function getLatLongFromImage(path) {
+    const tags = await exiftool.read(path);
+    if (tags && tags.GPSLatitude && tags.GPSLongitude) {
+      return {
+        lat: tags.GPSLatitude,
+        lng: tags.GPSLongitude
       }
-    }
-
-    function isGpsDataCorrect(data) {
-      data.forEach(item => {
-        if (Array.isArray(item)) {
-          if (item.length !== 2) {
-            return false;
-          }
-        } else {
-          return false;
-        }
-      });
-      return true;
+    } else {
+      return null;
     }
   }
 };
