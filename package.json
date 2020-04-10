@@ -51,7 +51,9 @@
       {
         "ext": [
           "JPEG",
-          "JPG"
+          "JPG",
+          "TIFF",
+          "TIF"
         ]
       }
     ],
