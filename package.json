@@ -1,9 +1,14 @@
 {
   "name": "geotag",
-  "version": "0.1.0",
-  "description": "Aplikacja umożliwiająca modyfikację i przegląd danych EXIF w plikach JPEG",
-  "author": "Piotr Marczyński && Paweł Szwajnoch && Przemysław Wylężek <test@test.com>",
-  "private": true,
+  "productName": "Geotag",
+  "version": "1.0.0",
+  "description": "Aplikacja umożliwiająca modyfikację i przegląd położenia geograficznego w danych EXIF w plikach JPEG i TIFF",
+  "contributors": [
+    "Piotr Marczyński",
+    "Paweł Szwajnoch",
+    "Przemysław Wylężek"
+  ],
+  "license": "MIT",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
@@ -40,8 +45,10 @@
     "linux": {
       "target": [
         "AppImage",
-        "deb"
-      ]
+        "deb",
+        "snap"
+      ],
+      "icon": "dist/256x256.png"
     },
     "win": {
       "target": "NSIS",
