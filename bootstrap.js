@@ -112,7 +112,7 @@ module.exports = function(dev) {
     if (paths) {
       for (const filePath of paths) {
         const fileName = getFileNameFromPath(filePath);
-        const fileType = getFileTypeFromName(fileName);
+        const fileType = getFileTypeFromName(fileName).toLowerCase();
         if (['tif', 'tiff', 'jpg', 'jpeg'].includes(fileType)) {
           let base64ImageData;
           try {
