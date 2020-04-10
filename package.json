@@ -17,8 +17,9 @@
   "dependencies": {
     "copyfiles": "^2.2.0",
     "core-js": "^3.6.4",
+    "exiftool-vendored": "^11.0.0",
+    "jimp": "^0.10.1",
     "leaflet": "^1.6.0",
-    "piexifjs": "^1.0.4",
     "vue": "^2.6.11",
     "vue2-leaflet": "^2.5.2"
   },
