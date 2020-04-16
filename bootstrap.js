@@ -1,4 +1,4 @@
-const {ipcMain, app, BrowserWindow, dialog} = require('electron');
+const {ipcMain, app, BrowserWindow, dialog, shell} = require('electron');
 const fs = require('fs');
 const pathManager = require('path');
 const Jimp = require('jimp');
@@ -26,7 +26,17 @@ module.exports = function(dev) {
       window.loadFile('dist/index.html');
     }
 
-    app.on('before-quit', () => exiftool.end())
+    app.on('before-quit', () => exiftool.end());
+
+    window.webContents.on('will-navigate', handleRedirect);
+    window.webContents.on('new-window', handleRedirect);
+
+    function handleRedirect(e, url) {
+      if(url !== window.webContents.getURL()) {
+        e.preventDefault();
+        shell.openExternal(url);
+      }
+    }
   });
 
   ipcMain.on('get-argv-images', (event) => {

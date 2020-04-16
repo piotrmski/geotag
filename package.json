@@ -1,7 +1,7 @@
 {
   "name": "geotag",
   "productName": "Geotag",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Aplikacja umożliwiająca modyfikację i przegląd położenia geograficznego w danych EXIF w plikach JPEG i TIFF",
   "contributors": [
     "Piotr Marczyński",
