@@ -1,18 +1,29 @@
 {
   "name": "geotag",
-  "version": "0.1.0",
-  "private": true,
+  "productName": "Geotag",
+  "version": "1.0.1",
+  "description": "Aplikacja umożliwiająca modyfikację i przegląd położenia geograficznego w danych EXIF w plikach JPEG i TIFF",
+  "contributors": [
+    "Piotr Marczyński",
+    "Paweł Szwajnoch",
+    "Przemysław Wylężek"
+  ],
+  "license": "MIT",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "electron-dev": "electron index-dev.js",
     "run-dev": "npm-run-all --parallel serve electron-dev",
-    "run-prod": "electron index.js"
+    "run-prod": "electron index.js",
+    "build-installer": "npm run build && copyfiles -f ./src/assets/builder-icons/*.* ./dist && electron-builder"
   },
   "main": "index.js",
   "dependencies": {
+    "copyfiles": "^2.2.0",
     "core-js": "^3.6.4",
+    "exiftool-vendored": "^11.0.0",
+    "jimp": "^0.10.1",
     "leaflet": "^1.6.0",
     "vue": "^2.6.11",
     "vue2-leaflet": "^2.5.2"
@@ -30,6 +41,29 @@
     "vue-template-compiler": "^2.6.11"
   },
   "build": {
+    "appId": "geotag",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "snap"
+      ],
+      "icon": "dist/256x256.png"
+    },
+    "win": {
+      "target": "NSIS",
+      "icon": "dist/icon.ico"
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "JPEG",
+          "JPG",
+          "TIFF",
+          "TIF"
+        ]
+      }
+    ],
     "files": [
       "index.js",
       "bootstrap.js",
