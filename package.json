@@ -5,7 +5,7 @@
   "description": "Aplikacja umożliwiająca modyfikację i przegląd położenia geograficznego w danych EXIF w plikach JPEG i TIFF",
   "author": {
     "name": "Piotr Marczyński",
-    "email": "todo@todo.com"
+    "email": "piotrmski@gmail.com"
   },
   "contributors": [
     "Paweł Szwajnoch",
@@ -46,32 +46,41 @@
   "build": {
     "appId": "geotag",
     "linux": {
-      "category": "AudioVideo",
+      "category": "Utilities",
       "target": [
-        "AppImage",
-        "deb",
-        "snap"
+        "deb"
       ]
     },
     "win": {
       "target": "NSIS",
       "icon": "dist/icon.ico"
     },
+    "deb": {
+      "depends": [
+        "gconf2",
+        "gconf-service",
+        "libnotify4",
+        "libappindicator1",
+        "libxtst6",
+        "libnss3",
+        "exiftool"
+      ]
+    },
     "fileAssociations": [
       {
-        "name": "Image JPEG",
+        "name": "JPEG image",
         "ext": "JPEG"
       },
       {
-        "name": "Image JPG",
+        "name": "JPG image",
         "ext": "JPG"
       },
       {
-        "name": "Image TIFF",
+        "name": "TIFF image",
         "ext": "TIFF"
       },
       {
-        "name": "Image TIF",
+        "name": "TIF image",
         "ext": "TIF"
       }
     ],
