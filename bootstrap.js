@@ -6,7 +6,11 @@ const ExifTool = require("exiftool-vendored").ExifTool;
 
 module.exports = function(dev) {
   let window;
-  const exiftool = new ExifTool();
+  let options = {};
+  if (process.platform !== 'win32') {
+    options = {exiftoolPath: 'exiftool'};
+  }
+  const exiftool = new ExifTool(options);
 
   app.on('ready', () => {
     window = new BrowserWindow({
