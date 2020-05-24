@@ -99,11 +99,11 @@ module.exports = function(dev) {
     dialog.showMessageBox(window, {
       type: 'warning',
       title: 'Ostrzeżenie',
-      buttons: ['OK', 'Cancel'],
+      buttons: ['Yes', 'No'],
       message: args.length === 1
-        ? `Plik "${args[0]}" posiada już zapisane położenie geograficzne.`
-        : `Pliki "${args.join('", "')}" posiadają już zapisane położenie geograficzne.`,
-      detail: 'Upuszczenie zdjęcia na mapie spowoduje nadpisanie położenia. Aby zobaczyć aktualne położenie zdjęcia i edytować je, upuść je w obszarze wyboru pliku.',
+        ? `Edycja pliku "${args[0]}"`
+        : `Edycja plików "${args.join('", "')}"`,
+      detail: `Ustawienie, zmiana lub usunięcie położenia geograficznego w programie spowoduje zmianę metadanych w ${args.length === 1 ? 'pliku' : 'plikach'} na dysku. Czy chcesz kontynuować?`,
       checkboxLabel: 'Nie pokazuj tego ostrzeżenia ponownie'
     }).then(r => event.returnValue = r);
   });

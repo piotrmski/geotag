@@ -88,7 +88,13 @@ export default {
   mounted() {
     window.addEventListener('mouseup', () => {
       if (this.draggedImage) {
-        ipcRenderer.send('set-gps-exif', this.draggedImage);
+        if (this.draggedImage.latLng) {
+          if (this.promptOverwriteWarning([this.draggedImage.filename])) {
+            ipcRenderer.send('set-gps-exif', this.draggedImage);
+          } else {
+            this.draggedImage.latLng = null;
+          }
+        }
         this.draggedImage = null;
         this.pinTempStyle = {display: 'none'};
       }
@@ -119,6 +125,7 @@ export default {
       ],
       selectedImage: null,
       draggedImage: null,
+      oldLatLng: null,
       map: {
         zoom: 2,
         center: L.latLng(10, 0),
@@ -177,7 +184,7 @@ export default {
 
     handleImagePinRemoveClick: function(event, image) {
       event.stopPropagation();
-      if (image.latLng) {
+      if (image.latLng && this.promptOverwriteWarning([image.filename])) {
         image.latLng = null;
         ipcRenderer.send('set-gps-exif', image);
       }
@@ -200,30 +207,25 @@ export default {
       // Discard images which are already opened
       images = images.filter(image => this.images.filter(i => i.path === image.path).length === 0);
 
-      // Show warning for images which already have latLng and discard them if user decides to do so
-      if (latLng && this.showOverwriteWarning) {
-        const imagesWithLatLng = images.filter(i => i.latLng != null);
-        const imagesWithoutLatLng = images.filter(i => i.latLng == null);
-        if (imagesWithoutLatLng.length !== images.length) {
-          const response = ipcRenderer.sendSync('show-overwrite-warning', imagesWithLatLng.map(i => i.filename));
-          if (response.response === 1) { // If user clicked 'Cancel', discard images which already have latLng
-            images = imagesWithoutLatLng;
-          } else { // If user clicked OK, overwrite latLng and check if user checked the "do not show again" checkbox. If so, don't ask in the future and always overwrite.
-            this.showOverwriteWarning = !response.checkboxChecked;
+      if (latLng) { // If images are dropped on the map
+        if (images.length && this.promptOverwriteWarning(images.map(i => i.filename))) {
+          for (let image of images) {
+            image.latLng = latLng;
+            ipcRenderer.send('set-gps-exif', image);
+            this.images.push(image);
           }
         }
-      }
-
-      for (let image of images) {
-        if (latLng) {
-          image.latLng = latLng;
-          ipcRenderer.send('set-gps-exif', image);
+      } else {
+        for (let image of images) {
+          this.images.push(image);
         }
-        this.images.push(image);
       }
     },
 
     handlePinDrag: function(image, event) {
+      if (!this.oldLatLng) {
+        this.oldLatLng = image.latLng;
+      }
       if (this.isLatLngOutOfBounds(event.target.getLatLng())) {
         event.target.setLatLng(this.clampLatLngToBounds(event.target.getLatLng()))
       }
@@ -231,7 +233,12 @@ export default {
     },
 
     handlePinDragEnd: function(image) {
-      ipcRenderer.send('set-gps-exif', image);
+      if (this.promptOverwriteWarning([image.filename])) {
+        ipcRenderer.send('set-gps-exif', image);
+      } else {
+        image.latLng = this.oldLatLng;
+      }
+      this.oldLatLng = null;
     },
 
     handleImgFromListDragStart: function(image, event) {
@@ -278,6 +285,18 @@ export default {
         latLng.lat < -85 ? -85 : (latLng.lat > 85 ? 85 : latLng.lat),
         latLng.lng < -180 ? -180 : (latLng.lng > 180 ? 180 : latLng.lng)
       )
+    },
+
+    promptOverwriteWarning: function(imagesFilenames) {
+      if (this.showOverwriteWarning) {
+        const response = ipcRenderer.sendSync('show-overwrite-warning', imagesFilenames);
+        if (response.response === 1) { // If user clicked 'No', return false.
+          return false;
+        } else if (response.checkboxChecked) { // If user clicked 'Yes' and checked the "do not show again" checkbox, don't ask in the future and always return true.
+          this.showOverwriteWarning = false;
+        }
+      }
+      return true;
     }
   }
 }
